@@ -17,6 +17,7 @@ from tempfile import NamedTemporaryFile, mkstemp
 from typing import Dict
 from dateutil import parser
 from dateutil.parser import ParserError
+from google.api_core.exceptions import BadRequest
 from joblib import Parallel, delayed, parallel_backend
 from jsonschema import Draft4Validator, FormatChecker
 
@@ -415,7 +416,11 @@ def flush_records(stream, records_to_load, row_count, db_sync):
 
     # Seek to the beginning of the file and load
     with open(csv_file, 'r+b') as f:
-        db_sync.load_avro(f, row_count)
+        try:
+            db_sync.load_avro(f, row_count)
+        except BadRequest as e:
+            logger.exception(e)
+            logger.info(row_count)
 
     # Delete temp file
     os.remove(csv_file)
